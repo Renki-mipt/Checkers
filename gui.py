@@ -53,7 +53,7 @@ def game_loop(screen: Surface, board: BoardState, ai: AI):
             if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
                 new_x, new_y = [p // grid_size for p in event.pos]
                 old_x, old_y = [p // grid_size for p in mouse_click_position]
-                new_board = board.do_move(old_x, old_y, new_x, new_y)
+                new_board = board.do_move(old_x, old_y, new_x, new_y)                
                 if new_board is not None:
                     board = new_board
 
@@ -65,6 +65,22 @@ def game_loop(screen: Surface, board: BoardState, ai: AI):
                 if event.key == pygame.K_r:
                     board = board.inverted()
 
+                if event.key == pygame.K_s:
+                    with open("checkers.txt", "w") as f:
+                        f.write(str(board.current_player) + '\n')
+                        f.write(str(board.in_the_process_of_taking) + '\n')
+                        for i in range(8):
+                            for j in range(8):
+                                f.write(str(board.board[j, i]) + '\n')
+
+                if event.key == pygame.K_l:
+                    with open("checkers.txt", "r") as f:
+                        board.current_player = f.readline()
+                        board.in_the_process_of_taking = True if f.readline() == 'True' else False
+                        for i in range(8):
+                            for j in range(8):
+                                board.board[j, i] = f.readline()
+
                 if event.key == pygame.K_SPACE:
                     new_board = board.inverted()
                     while True:
@@ -73,13 +89,11 @@ def game_loop(screen: Surface, board: BoardState, ai: AI):
                             break
                     if new_board is not None:
                         board = new_board.inverted()
-
         draw_board(screen, 0, 0, grid_size, board)
         pygame.display.flip()
 
 
 pygame.init()
-
 screen: Surface = pygame.display.set_mode([512, 512])
 ai = AI(PositionEvaluation(), search_depth=4)
 

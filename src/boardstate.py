@@ -1,4 +1,5 @@
 import numpy as np
+import random
 from typing import Optional, List
 
 
@@ -20,14 +21,12 @@ class BoardState:
         to_ = self.board[to_y, to_x]
 
         if from_x == to_x and from_y == to_y:
-            return None  # invalid move
+            return None  # invalid move')
         if max(from_x, from_y, to_x, to_y) >= 8 or min(from_x, from_y, to_x, to_y) < 0:
             return None  # invalid request
-
         if from_ <= 0 or from_ == 3 or \
         to_ != 0:
             return None
-
         if self.in_the_process_of_taking and from_ != 4 and from_ != 5:
             return None
 
@@ -197,6 +196,10 @@ class BoardState:
                             help_board = self.do_move(j, i, m, k)
                             if help_board is not None:
                                 possible_moves.append(help_board)
+        for i in range(len(possible_moves)):
+            rand_ind = random.randint(0, len(possible_moves) - 1)
+            possible_moves[rand_ind], possible_moves[i] = \
+            possible_moves[i], possible_moves[rand_ind]
         return possible_moves
 
     @property
