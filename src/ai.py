@@ -1,23 +1,17 @@
 from typing import Optional
 
+from itertools import product
 from .boardstate import BoardState
 
 
 class PositionEvaluation:
+    def __init__(self):
+        self.price = {1: 1, 2: 4, -1: -1, -2: -4, 0: 0}
     def __call__(self, board: BoardState) -> float:
         value = 0
-        for i in range(8):
-            for j in range(8):
-                if board.board[i, j] == 1:
-                    value += 1
-                if board.board[i, j] == 2:
-                    value += 4
-                if board.board[i, j] == -1:
-                    value -= 1
-                if board.board[i, j] == -2:
-                    value -= 4
+        for i, j in product(range(8), range(8)):
+            value += self.price[board.board[i, j]]
         return value
-
 
 class AI:
     def __init__(self, position_evaluation: PositionEvaluation, search_depth: int):
@@ -30,7 +24,7 @@ class AI:
         moves = board.get_possible_moves()
         for i in moves:
             value = 0
-            if i.in_the_process_of_taking == 1:
+            if i.in_the_process_of_taking is True:
                 value = self.better_move(i, 0)
             else:
                 value = self.better_move(i.inverted(), 1)

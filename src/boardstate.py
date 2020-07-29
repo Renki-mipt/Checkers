@@ -1,5 +1,6 @@
 import numpy as np
 import random
+from itertools import product
 from typing import Optional, List
 
 
@@ -22,7 +23,7 @@ class BoardState:
 
         if from_x == to_x and from_y == to_y:
             return None  # invalid move')
-        if max(from_x, from_y, to_x, to_y) >= 8 or min(from_x, from_y, to_x, to_y) < 0:
+        if max(from_x, from_y, to_x, to_y) > 7 or min(from_x, from_y, to_x, to_y) < 0:
             return None  # invalid request
         if from_ <= 0 or from_ == 3 or \
         to_ != 0:
@@ -44,13 +45,11 @@ class BoardState:
             return None
         dir_x = (to_x - from_x) // abs(to_x - from_x)  # вектор направления хода
         dir_y = (to_y - from_y) // abs(to_y - from_y)
-        x = from_x + dir_x
-        y = from_y + dir_y
         last_x = from_x  # следующая клетка после последнего взятия
         last_y = from_y
         is_fight = 0  # is_fight == 1 если дамка сбивает хотя бы одну шашку
         # предварительная проверка пути от from_ до to_
-        while x != to_x:
+        for x, y in zip(range(from_x + dir_x, to_x, dir_x), range(from_y + dir_y, to_y, dir_y)):
             if self.board[y, x] > 0:
                 return None
             if self.board[y, x] < 0:
@@ -59,30 +58,23 @@ class BoardState:
                 last_y = y + dir_y
                 if self.board[y + dir_y, x + dir_x] != 0:
                     return None
-            x += dir_x
-            y += dir_y
         # проверяем, вдруг надо было обязательно бить, но дамка сделала тихий ход
         if is_fight == 0:
-            for i in range(8):
-                for j in range(8):
-                    if self.find_way(i, j):
-                        return None
+            for i, j in product(range(8), range(8)):
+                if self.find_way(i, j):
+                    return None
         # проверяем, вдруг нельзя остановить в точке назначения, так как на траектории есть
         # клетка из которой можно продолжить бить
         if is_fight:
             if not self.stain_take_check(dir_x, dir_y, to_x, to_y, last_x, last_y):
                 return None
         # если всё в порядке, то надо обозначить сбитые фигуры числом 3
-        x = from_x + dir_x
-        y = from_y + dir_y
-        while x != to_x:
+        for x, y in zip(range(from_x + dir_x, to_x, dir_x), range(from_y + dir_y, to_y, dir_y)):
             if self.board[y, x] < 0:
                 self.board[y, x] = 3
-            x += dir_x
-            y += dir_y
         # финальная обработка
         self.step(from_x, from_y, to_x, to_y)
-        if self.in_the_process_of_taking == 0:
+        if self.in_the_process_of_taking == False:
             self.move_end()
         else:
             self.board[to_y, to_x] = 5
@@ -94,15 +86,12 @@ class BoardState:
         remember = self.board[y_prev, x_prev]
         self.board[y_prev, x_prev] = 3
         self.board[to_y, to_x] = 2
-        x = last_x + dir_x
-        y = last_y + dir_y
         fw = self.find_way(to_x, to_y)
         self.board[to_y, to_x] = 0
-        if fw == 0:
-            while x >= 0 and x <= 7 and y >= 0 and y <= 7:
+        if fw == False:
+            for x, y in zip(range(last_x + dir_x, 8 if dir_x > 0 else -1, dir_x), \
+            range(last_y + dir_y, 8 if dir_y > 0 else -1, dir_y)):
                 if x == to_x:
-                    x += dir_x
-                    y += dir_y
                     continue
                 if self.board[y, x] != 0:
                     break
@@ -112,16 +101,13 @@ class BoardState:
                     self.board[y, x] = 0
                     return False
                 self.board[y, x] = 0
-                x += dir_x
-                y += dir_y
         else:
-            self.in_the_process_of_taking = 1
+            self.in_the_process_of_taking = True
         self.board[y_prev, x_prev] = remember
         return True
 
     def move_end(self):
-        for i in range(8):
-            for j in range(8):
+        for i, j in product(range(8), range(8)):
                 if self.board[i, j] == 3:
                     self.board[i, j] = 0
                 if self.board[i, j] > 3:
@@ -129,8 +115,7 @@ class BoardState:
 
     def move_soldier(self, from_x, from_y, to_x, to_y):
         if abs(to_x - from_x) == from_y - to_y == 1:
-                for i in range(8):
-                    for j in range(8):
+                for i, j in product(range(8), range(8)):
                         if self.find_way(i, j):
                             return None
                 self.step(from_x, from_y, to_x, to_y)
@@ -171,31 +156,24 @@ class BoardState:
 
         if self.board[from_y, from_x] == 2 or self.board[from_y, from_x] == 5:  # если дамка
             for i in directions:
-                to_x = from_x + i[0] * 2
-                to_y = from_y + i[1] * 2
-                while max(to_x, to_y) <= 7 and min(to_x, to_y) >= 0:
-                    this_field = self.board[to_y, to_x]
-                    prev_field = self.board[to_y - i[1], to_x - i[0]]
+                for x, y in zip(range(from_x + i[0] * 2, 8 if i[0] > 0 else -1, i[0]), \
+                range(from_y + i[1] * 2, 8 if i[1] > 0 else -1, i[1])):
+                    this_field = self.board[y, x]
+                    prev_field = self.board[y - i[1], x - i[0]]
                     if this_field > 0 or prev_field > 0:
                         break
-                    if this_field == 0 and prev_field < 0:
-                        return 1
+                    if this_field == 0 and prev_field < 0:              
+                        return True
                     if this_field < 0 and prev_field < 0:
                         break
-                    to_x += i[0]
-                    to_y += i[1]
-        return 0
+        return False
 
     def get_possible_moves(self) -> List['BoardState']:
         possible_moves = []
-        for i in range(8):
-            for j in range(8):
-                if 0 < self.board[i, j] and self.board[i, j] != 3:
-                    for k in range(8):
-                        for m in range(8):
-                            help_board = self.do_move(j, i, m, k)
-                            if help_board is not None:
-                                possible_moves.append(help_board)
+        for from_x, from_y, to_x, to_y in product(range(8), range(8), range(8), range(8)):
+            help_board = self.do_move(from_x, from_y, to_x, to_y)
+            if help_board is not None:
+                possible_moves.append(help_board)
         for i in range(len(possible_moves)):
             rand_ind = random.randint(0, len(possible_moves) - 1)
             possible_moves[rand_ind], possible_moves[i] = \
@@ -213,34 +191,29 @@ class BoardState:
     @staticmethod
     def initial_state() -> 'BoardState':
         board = np.zeros(shape=(8, 8), dtype=np.int8)
-
+    
         # 1 - шашка первого игрока, 2 - дамка первого игрока,
         # -1 и -2 - шашка и дамка второго игрока
         # 4, 5 - шашка и дамка, которые находятся в процессе взятия,
         # 3 - сбитая фигура, ещё не снятая с доски
-        board[7, 0] = 1  # шашки первого игрока
-        board[7, 2] = 1
-        board[7, 4] = 1
-        board[7, 6] = 1
-        board[6, 1] = 1  # шашки первого игрока
-        board[6, 3] = 1
-        board[6, 5] = 1
-        board[6, 7] = 1
-        board[5, 0] = 1  # шашки первого игрока
-        board[5, 2] = 1
-        board[5, 4] = 1
-        board[5, 6] = 1
-        board[2, 1] = -1  # шашки противника
-        board[2, 3] = -1
-        board[2, 5] = -1
-        board[2, 7] = -1
-        board[1, 0] = -1  # шашки противника
-        board[1, 2] = -1
-        board[1, 4] = -1
-        board[1, 6] = -1
-        board[0, 1] = -1  # шашки противника
-        board[0, 3] = -1
-        board[0, 5] = -1
-        board[0, 7] = -1
-
+        
+        for i, j in product(range(5, 8), range(4)):
+            board[i, j * 2 + 1 - i % 2] = 1
+        for i, j in product(range(3), range(4)):
+            board[i, j * 2 + 1 - i % 2] = -1
+        
         return BoardState(board, 1)
+
+    def save_board(self, file_name):
+        with open(file_name, "w") as f:
+            f.write(str(self.current_player) + '\n')
+            f.write(str(self.in_the_process_of_taking) + '\n')
+            for i, j in product(range(8), range(8)):
+                    f.write(str(self.board[j, i]) + '\n')
+
+    def open_saved_board(self, file_name):
+        with open(file_name, "r") as f:
+             self.current_player = f.readline()
+             self.in_the_process_of_taking = True if f.readline() == 'True' else False
+             for i, j in product(range(8), range(8)):
+                  self.board[j, i] = f.readline()

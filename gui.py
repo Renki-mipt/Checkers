@@ -38,7 +38,6 @@ def draw_board(screen: Surface, pos_x: int, pos_y: int, elem_size: int, board: B
             negative_color = [255 - e for e in figure_color]
             pygame.draw.circle(screen, negative_color, (position[0] + elem_size // 2, position[1] + elem_size // 2), r)
 
-
 def game_loop(screen: Surface, board: BoardState, ai: AI):
     grid_size = screen.get_size()[0] // 8
 
@@ -66,20 +65,10 @@ def game_loop(screen: Surface, board: BoardState, ai: AI):
                     board = board.inverted()
 
                 if event.key == pygame.K_s:
-                    with open("checkers.txt", "w") as f:
-                        f.write(str(board.current_player) + '\n')
-                        f.write(str(board.in_the_process_of_taking) + '\n')
-                        for i in range(8):
-                            for j in range(8):
-                                f.write(str(board.board[j, i]) + '\n')
-
+                    board.save_board("checkers.txt")
+                  
                 if event.key == pygame.K_l:
-                    with open("checkers.txt", "r") as f:
-                        board.current_player = f.readline()
-                        board.in_the_process_of_taking = True if f.readline() == 'True' else False
-                        for i in range(8):
-                            for j in range(8):
-                                board.board[j, i] = f.readline()
+                    board.open_saved_board("checkers.txt")
 
                 if event.key == pygame.K_SPACE:
                     new_board = board.inverted()
@@ -92,8 +81,8 @@ def game_loop(screen: Surface, board: BoardState, ai: AI):
         draw_board(screen, 0, 0, grid_size, board)
         pygame.display.flip()
 
-
 pygame.init()
+
 screen: Surface = pygame.display.set_mode([512, 512])
 ai = AI(PositionEvaluation(), search_depth=4)
 
